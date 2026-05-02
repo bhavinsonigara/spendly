@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(D:/expense-tracker/venv/Scripts/python.exe *)",
+      "Bash(D:/expense-tracker/venv/Scripts/pip.exe list *)",
+      "Bash(git init *)"
+    ]
+  }
+}
