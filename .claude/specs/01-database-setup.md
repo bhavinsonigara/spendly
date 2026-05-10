@@ -1,5 +1,3 @@
-# Spec Document
-
 ## 1. Overview
 
 Replace the stub in `database/db.py` with a working SQLite implementation.
