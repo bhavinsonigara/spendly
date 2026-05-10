@@ -105,7 +105,95 @@ def logout():
 
 @app.route("/profile")
 def profile():
-    return "Profile page — coming in Step 4"
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    db = get_db()
+    try:
+        user = db.execute(
+            "SELECT id, name, email, created_at FROM users WHERE id = ?",
+            (session["user_id"],),
+        ).fetchone()
+    finally:
+        db.close()
+    return render_template("profile.html", user=user)
+
+
+@app.route("/profile/update-name", methods=["POST"])
+def update_name():
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    name = request.form.get("name", "").strip()
+    if not name:
+        db = get_db()
+        try:
+            user = db.execute(
+                "SELECT id, name, email, created_at FROM users WHERE id = ?",
+                (session["user_id"],),
+            ).fetchone()
+        finally:
+            db.close()
+        return render_template("profile.html", user=user, name_error="Name cannot be blank.")
+    if len(name) > 100:
+        db = get_db()
+        try:
+            user = db.execute(
+                "SELECT id, name, email, created_at FROM users WHERE id = ?",
+                (session["user_id"],),
+            ).fetchone()
+        finally:
+            db.close()
+        return render_template("profile.html", user=user, name_error="Name must be 100 characters or fewer.")
+    db = get_db()
+    try:
+        db.execute("UPDATE users SET name = ? WHERE id = ?", (name, session["user_id"]))
+        db.commit()
+    finally:
+        db.close()
+    session["user_name"] = name
+    return redirect(url_for("profile") + "?updated=name")
+
+
+@app.route("/profile/update-password", methods=["POST"])
+def update_password():
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    current_password = request.form.get("current_password", "")
+    new_password = request.form.get("new_password", "")
+    confirm_password = request.form.get("confirm_password", "")
+
+    def render_with_error(msg):
+        db = get_db()
+        try:
+            user = db.execute(
+                "SELECT id, name, email, created_at FROM users WHERE id = ?",
+                (session["user_id"],),
+            ).fetchone()
+        finally:
+            db.close()
+        return render_template("profile.html", user=user, password_error=msg)
+
+    if not current_password or not new_password or not confirm_password:
+        return render_with_error("All fields are required.")
+    if len(new_password) < 8:
+        return render_with_error("New password must be at least 8 characters.")
+    if new_password != confirm_password:
+        return render_with_error("Passwords do not match.")
+
+    db = get_db()
+    try:
+        row = db.execute(
+            "SELECT password_hash FROM users WHERE id = ?", (session["user_id"],)
+        ).fetchone()
+        if not check_password_hash(row["password_hash"], current_password):
+            return render_with_error("Current password is incorrect.")
+        db.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?",
+            (generate_password_hash(new_password), session["user_id"]),
+        )
+        db.commit()
+    finally:
+        db.close()
+    return redirect(url_for("profile") + "?updated=password")
 
 
 @app.route("/expenses/add")
