@@ -2,12 +2,33 @@
 
 {% block title %}Sign in — Spendly{% endblock %}
 
-{% block content %}
+{% block head %}
+<style>
+  .auth-logo-mark {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; font-weight: 800; color: #fff;
+    margin: 0 auto 1.25rem;
+    box-shadow: 0 0 28px rgba(99,102,241,0.45);
+  }
+  .auth-divider {
+    display: flex; align-items: center; gap: 0.75rem;
+    margin: 1.25rem 0; color: var(--ink-faint); font-size: 0.8rem;
+  }
+  .auth-divider::before, .auth-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+</style>
+{% endblock %}
 
+{% block content %}
 <section class="auth-section">
     <div class="auth-container">
 
         <div class="auth-header">
+            <div class="auth-logo-mark">S</div>
             <h1 class="auth-title">Welcome back</h1>
             <p class="auth-subtitle">Sign in to your Spendly account</p>
         </div>
@@ -21,7 +42,7 @@
                 <div class="form-group">
                     <label for="email">Email address</label>
                     <input type="email" id="email" name="email"
-                           class="form-input" placeholder="nitish@example.com"
+                           class="form-input" placeholder="you@example.com"
                            required autofocus>
                 </div>
                 <div class="form-group">
@@ -36,10 +57,9 @@
 
         <p class="auth-switch">
             Don't have an account?
-            <a href="{{ url_for('register') }}">Create one free</a>
+            <a href="{{ url_for('register') }}">Create one free →</a>
         </p>
 
     </div>
 </section>
-
 {% endblock %}

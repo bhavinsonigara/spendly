@@ -4,62 +4,109 @@
 
 {% block head %}
 <style>
-  .profile-page { max-width: 600px; margin: 3rem auto; padding: 0 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
-  .profile-success { background: var(--accent-light); color: var(--accent); border: 1px solid #b2d0bb; padding: 0.75rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem; font-size: 0.9rem; }
-  .profile-page h2 { font-family: var(--font-display); font-size: 1.3rem; margin-bottom: 1.25rem; }
-  .profile-meta { font-size: 0.9rem; color: var(--ink-muted); margin-bottom: 0.4rem; }
-  .profile-meta span { color: var(--ink); font-weight: 500; }
+  .profile-page { max-width: 640px; margin: 2.5rem auto; padding: 0 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
+
+  .profile-header { margin-bottom: 0.5rem; }
+  .profile-header h1 { font-family: var(--font-display); font-size: 2rem; color: var(--ink); letter-spacing: -0.03em; }
+  .profile-header p  { font-size: 0.875rem; color: var(--ink-muted); margin-top: 0.2rem; }
+
+  .panel { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; }
+  .panel-title { font-family: var(--font-display); font-size: 1.15rem; color: var(--ink); margin-bottom: 1.25rem; }
+
+  .profile-meta { font-size: 0.875rem; color: var(--ink-muted); margin-bottom: 0.45rem; display: flex; align-items: center; gap: 0.5rem; }
+  .profile-meta strong { color: var(--ink-soft); font-weight: 500; }
+  .meta-icon { font-size: 0.85rem; color: var(--ink-faint); }
+
+  .profile-success { background: var(--success-light); color: var(--success); border: 1px solid rgba(52,211,153,0.25); border-radius: var(--radius-sm); padding: 0.75rem 1rem; font-size: 0.875rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; }
+  .profile-success::before { content: '✓'; font-weight: 700; flex-shrink: 0; }
+
+  .danger-zone { border-color: rgba(251,113,133,0.25) !important; }
+  .danger-zone .panel-title { color: var(--danger); }
+  .danger-warning { font-size: 0.875rem; color: var(--ink-muted); margin-bottom: 1.25rem; background: var(--danger-light); border: 1px solid rgba(251,113,133,0.2); border-radius: var(--radius-sm); padding: 0.75rem 1rem; }
+
+  .btn-danger-solid { display: block; width: 100%; padding: 0.75rem; background: var(--danger); color: #fff; border: none; border-radius: var(--radius-sm); font-family: var(--font-body); font-size: 0.95rem; font-weight: 600; cursor: pointer; margin-top: 0.5rem; transition: opacity 0.2s; }
+  .btn-danger-solid:hover { opacity: 0.85; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="profile-page">
 
-  <div class="auth-card">
-    <h2>Account</h2>
-    <p class="profile-meta">Email: <span>{{ user["email"] }}</span></p>
-    <p class="profile-meta">Member since: <span>{{ user["created_at"][:10] }}</span></p>
+  <div class="profile-header">
+    <h1>Profile</h1>
+    <p>Manage your account details and preferences.</p>
   </div>
 
-  <div class="auth-card">
-    <h2>Display Name</h2>
+  <!-- Account info -->
+  <div class="panel">
+    <p class="panel-title">Account</p>
+    <p class="profile-meta"><span class="meta-icon">✉</span> <strong>{{ user["email"] }}</strong></p>
+    <p class="profile-meta"><span class="meta-icon">◷</span> Member since <strong>{{ user["created_at"][:10] }}</strong></p>
+  </div>
+
+  <!-- Display name -->
+  <div class="panel">
+    <p class="panel-title">Display Name</p>
     {% if name_error %}
-    <p class="auth-error">{{ name_error }}</p>
+    <div class="auth-error">{{ name_error }}</div>
     {% endif %}
     {% if request.args.get("updated") == "name" %}
-    <p class="profile-success">Name updated successfully.</p>
+    <div class="profile-success">Name updated successfully.</div>
     {% endif %}
     <form method="POST" action="/profile/update-name">
       <div class="form-group">
         <label for="name">Name</label>
         <input class="form-input" type="text" id="name" name="name" value="{{ user['name'] }}">
       </div>
-      <button type="submit" class="btn-submit">Save</button>
+      <button type="submit" class="btn-submit">Save name</button>
     </form>
   </div>
 
-  <div class="auth-card">
-    <h2>Change Password</h2>
+  <!-- Change password -->
+  <div class="panel">
+    <p class="panel-title">Change Password</p>
     {% if password_error %}
-    <p class="auth-error">{{ password_error }}</p>
+    <div class="auth-error">{{ password_error }}</div>
     {% endif %}
     {% if request.args.get("updated") == "password" %}
-    <p class="profile-success">Password updated successfully.</p>
+    <div class="profile-success">Password updated successfully.</div>
     {% endif %}
     <form method="POST" action="/profile/update-password">
       <div class="form-group">
-        <label for="current_password">Current Password</label>
+        <label for="current_password">Current password</label>
         <input class="form-input" type="password" id="current_password" name="current_password" placeholder="Enter current password">
       </div>
       <div class="form-group">
-        <label for="new_password">New Password</label>
+        <label for="new_password">New password</label>
         <input class="form-input" type="password" id="new_password" name="new_password" placeholder="At least 8 characters">
       </div>
       <div class="form-group">
-        <label for="confirm_password">Confirm New Password</label>
+        <label for="confirm_password">Confirm new password</label>
         <input class="form-input" type="password" id="confirm_password" name="confirm_password" placeholder="Repeat new password">
       </div>
-      <button type="submit" class="btn-submit">Update Password</button>
+      <button type="submit" class="btn-submit">Update password</button>
+    </form>
+  </div>
+
+  <!-- Delete account -->
+  <div class="panel danger-zone">
+    <p class="panel-title">Delete Account</p>
+    <div class="danger-warning">
+      This permanently deletes your account and all your expenses. This action cannot be undone.
+    </div>
+    {% if delete_error %}
+    <div class="auth-error">{{ delete_error }}</div>
+    {% endif %}
+    <form method="POST" action="/profile/delete-account">
+      <div class="form-group">
+        <label for="del-password">Confirm your password</label>
+        <input class="form-input" type="password" id="del-password" name="password"
+               placeholder="Enter your current password" required>
+      </div>
+      <button type="submit" class="btn-danger-solid"
+              onclick="return confirm('Are you absolutely sure? This will permanently delete your account and all data.')">
+        Delete my account
+      </button>
     </form>
   </div>
 

@@ -2,14 +2,31 @@
 
 {% block title %}Create account — Spendly{% endblock %}
 
-{% block content %}
+{% block head %}
+<style>
+  .auth-logo-mark {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; font-weight: 800; color: #fff;
+    margin: 0 auto 1.25rem;
+    box-shadow: 0 0 28px rgba(99,102,241,0.45);
+  }
+  .password-hint {
+    font-size: 0.78rem; color: var(--ink-faint); margin-top: 0.35rem;
+  }
+</style>
+{% endblock %}
 
+{% block content %}
 <section class="auth-section">
     <div class="auth-container">
 
         <div class="auth-header">
+            <div class="auth-logo-mark">S</div>
             <h1 class="auth-title">Create your account</h1>
-            <p class="auth-subtitle">Start tracking your expenses today</p>
+            <p class="auth-subtitle">Start tracking your expenses today — free forever</p>
         </div>
 
         <div class="auth-card">
@@ -21,13 +38,13 @@
                 <div class="form-group">
                     <label for="name">Full name</label>
                     <input type="text" id="name" name="name"
-                           class="form-input" placeholder="Nitish Kumar"
+                           class="form-input" placeholder="Bhavin Sonigara"
                            required autofocus>
                 </div>
                 <div class="form-group">
                     <label for="email">Email address</label>
                     <input type="email" id="email" name="email"
-                           class="form-input" placeholder="nitish@example.com"
+                           class="form-input" placeholder="you@example.com"
                            required>
                 </div>
                 <div class="form-group">
@@ -35,6 +52,7 @@
                     <input type="password" id="password" name="password"
                            class="form-input" placeholder="Min. 8 characters"
                            required>
+                    <p class="password-hint">At least 8 characters</p>
                 </div>
                 <button type="submit" class="btn-submit">Create account</button>
             </form>
@@ -42,10 +60,9 @@
 
         <p class="auth-switch">
             Already have an account?
-            <a href="{{ url_for('login') }}">Sign in</a>
+            <a href="{{ url_for('login') }}">Sign in →</a>
         </p>
 
     </div>
 </section>
-
 {% endblock %}

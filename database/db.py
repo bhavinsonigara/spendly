@@ -32,6 +32,15 @@ def init_db():
             description TEXT,
             created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
         );
+
+        CREATE TABLE IF NOT EXISTS budgets (
+            id       INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id  INTEGER NOT NULL REFERENCES users(id),
+            category TEXT    NOT NULL,
+            amount   REAL    NOT NULL,
+            month    TEXT    NOT NULL,
+            UNIQUE(user_id, category, month)
+        );
     """)
     conn.commit()
     conn.close()

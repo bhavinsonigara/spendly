@@ -1,237 +1,592 @@
 {% extends "base.html" %}
 
-{% block title %}Expenses — Spendly{% endblock %}
+{% block title %}Dashboard — Spendly{% endblock %}
 
 {% block head %}
 <style>
-  .expenses-page { max-width: 860px; margin: 3rem auto; padding: 0 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
-  .expenses-page h1 { font-family: var(--font-display); font-size: 2rem; margin-bottom: 0.25rem; }
-  .expenses-page h2 { font-family: var(--font-display); font-size: 1.3rem; margin-bottom: 1.25rem; }
-  .page-subtitle { color: var(--ink-muted); font-size: 0.9rem; }
+/* ─── Shell ─────────────────────────────────────────────────────── */
+.dash {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
 
-  .summary-total { font-family: var(--font-display); font-size: 2.5rem; color: var(--accent); margin-bottom: 1rem; line-height: 1; }
-  .category-breakdown { list-style: none; display: flex; flex-wrap: wrap; gap: 0.5rem; }
-  .category-pill { background: var(--paper-warm); border: 1px solid var(--border); border-radius: 999px; padding: 0.25rem 0.75rem; font-size: 0.8rem; color: var(--ink-soft); }
+/* ─── Page header ────────────────────────────────────────────────── */
+.dash-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.dash-title  { font-family: var(--font-display); font-size: 2rem; color: var(--ink); letter-spacing: -0.03em; line-height: 1; }
+.dash-sub    { font-size: 0.875rem; color: var(--ink-muted); margin-top: 0.3rem; }
 
-  .add-form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem; }
-  .add-form-grid .form-group { margin-bottom: 0; }
-  .desc-row { margin-bottom: 0.75rem; }
+/* ─── Stat strip ─────────────────────────────────────────────────── */
+.stat-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+.stat-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+}
+.stat-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin-bottom: 0.45rem; }
+.stat-value { font-family: var(--font-display); font-size: 2rem; color: var(--ink); line-height: 1; }
+.stat-value.primary {
+  background: linear-gradient(135deg, #818cf8, #c4b5fd);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.stat-value.success { color: var(--success); }
+.stat-sub { font-size: 0.75rem; color: var(--ink-faint); margin-top: 0.35rem; }
 
-  .expense-list { list-style: none; display: flex; flex-direction: column; }
-  .expense-item { border-bottom: 1px solid var(--border-soft); padding: 0.85rem 0; }
-  .expense-item:last-child { border-bottom: none; }
-  .expense-row { display: grid; grid-template-columns: 90px 120px 1fr auto auto; align-items: center; gap: 1rem; }
-  .expense-date { font-size: 0.82rem; color: var(--ink-muted); }
-  .expense-category { font-size: 0.78rem; font-weight: 500; background: var(--accent-light); color: var(--accent); padding: 0.2rem 0.6rem; border-radius: 999px; text-align: center; }
-  .expense-desc { font-size: 0.9rem; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .expense-amount { font-family: var(--font-display); font-size: 1.05rem; color: var(--ink); text-align: right; white-space: nowrap; }
-  .expense-actions { display: flex; gap: 0.4rem; }
+/* ─── Two-column grid ────────────────────────────────────────────── */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 1.5rem;
+  align-items: start;
+}
+.dash-main { display: flex; flex-direction: column; gap: 1.25rem; }
+.dash-side { display: flex; flex-direction: column; gap: 1.25rem; }
 
-  .btn-edit { background: transparent; border: 1px solid var(--border); color: var(--ink-muted); padding: 0.3rem 0.65rem; border-radius: var(--radius-sm); font-size: 0.8rem; font-family: var(--font-body); cursor: pointer; transition: all 0.2s; }
-  .btn-edit:hover { border-color: var(--ink); color: var(--ink); }
-  .btn-danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); padding: 0.3rem 0.65rem; border-radius: var(--radius-sm); font-size: 0.8rem; font-family: var(--font-body); cursor: pointer; transition: all 0.2s; }
-  .btn-danger:hover { background: var(--danger); color: #fff; }
+/* ─── Panel base ─────────────────────────────────────────────────── */
+.panel {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+}
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.panel-title { font-family: var(--font-display); font-size: 1.15rem; color: var(--ink); letter-spacing: -0.01em; }
+.panel-count { font-size: 0.78rem; color: var(--ink-faint); }
 
-  .edit-form { display: none; padding: 0.75rem 0 0.25rem; }
-  .edit-form.is-open { display: block; }
-  .edit-form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem; }
-  .edit-form-grid .form-group { margin-bottom: 0; }
-  .edit-form-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
-  .edit-form-actions .btn-submit { width: auto; padding: 0.5rem 1.25rem; margin-top: 0; }
-  .edit-form-actions .btn-ghost { padding: 0.5rem 1.25rem; cursor: pointer; font-family: var(--font-body); font-size: 0.9rem; }
+/* ─── Overview (sidebar) ─────────────────────────────────────────── */
+.overview-total {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  color: var(--ink);
+  line-height: 1;
+  margin-bottom: 0.85rem;
+  background: linear-gradient(135deg, #818cf8, #c4b5fd);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.chart-wrap { display: flex; justify-content: center; margin: 1rem 0 0.5rem; }
+.cat-pills  { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.85rem; }
+.cat-pill   {
+  background: var(--bg-3); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0.22rem 0.65rem;
+  font-size: 0.74rem; color: var(--ink-muted);
+}
 
-  .exp-list-header { display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1rem; }
-  .exp-list-header h2 { margin-bottom: 0; }
-  .exp-count { font-size: 0.82rem; color: var(--ink-muted); }
-  .filter-section { border-bottom: 1px solid var(--border-soft); padding-bottom: 1.25rem; margin-bottom: 1.25rem; }
-  .quick-filters { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.85rem; }
-  .chip { display: inline-block; padding: 0.28rem 0.75rem; border-radius: 999px; font-size: 0.8rem; font-weight: 500; border: 1px solid var(--border); color: var(--ink-muted); text-decoration: none; transition: all 0.18s; }
-  .chip:hover { border-color: var(--ink); color: var(--ink); }
-  .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .date-range-row { display: flex; align-items: flex-end; gap: 0.65rem; flex-wrap: wrap; }
-  .date-range-row .form-group { margin-bottom: 0; min-width: 130px; flex: 1; }
-  .range-actions { display: flex; gap: 0.5rem; }
-  .range-actions .btn-submit { width: auto; padding: 0.6rem 1.1rem; margin-top: 0; }
-  .range-actions .btn-ghost { padding: 0.6rem 1.1rem; display: inline-flex; align-items: center; }
-  .filter-note { margin-top: 0.75rem; font-size: 0.82rem; color: var(--ink-muted); }
-  .filter-note strong { color: var(--accent); }
+/* ─── Budget (sidebar) ───────────────────────────────────────────── */
+.budget-set-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+.budget-set-row .form-group { margin-bottom: 0; }
+.budget-set-row .btn-submit { margin-top: 0; grid-column: 1 / -1; padding: 0.6rem; }
+.budget-list { list-style: none; display: flex; flex-direction: column; gap: 0.55rem; }
+.budget-row  { display: grid; grid-template-columns: 1fr auto; gap: 0.5rem; align-items: center; }
+.budget-info { display: flex; flex-direction: column; gap: 0.3rem; }
+.budget-top  { display: flex; justify-content: space-between; align-items: baseline; }
+.budget-label  { font-size: 0.82rem; font-weight: 500; color: var(--ink-soft); }
+.budget-amounts { font-size: 0.72rem; color: var(--ink-faint); }
+.budget-bar  { height: 5px; background: var(--bg-4); border-radius: 999px; overflow: hidden; margin-top: 0.25rem; }
+.budget-fill { height: 100%; background: linear-gradient(90deg, #6366f1, #818cf8); border-radius: 999px; transition: width 0.4s; }
+.budget-over .budget-fill  { background: linear-gradient(90deg, #f43f5e, #fb7185); }
+.budget-over .budget-label { color: var(--danger); }
+.budget-pct { font-size: 0.72rem; font-weight: 600; color: var(--ink-faint); white-space: nowrap; }
+.budget-pct.over { color: var(--danger); }
+.budget-empty { font-size: 0.82rem; color: var(--ink-faint); text-align: center; padding: 0.75rem 0; }
 
-  .empty-state { text-align: center; padding: 2.5rem 1rem; color: var(--ink-muted); font-size: 0.95rem; }
+/* ─── Add expense (main) ─────────────────────────────────────────── */
+.add-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; }
+.add-grid .form-group { margin-bottom: 0; }
+.add-footer { display: grid; grid-template-columns: 1fr auto; gap: 0.75rem; align-items: flex-end; margin-top: 0.75rem; }
+.add-footer .form-group { margin-bottom: 0; }
+.add-footer .btn-submit { margin-top: 0; width: auto; padding: 0.65rem 1.5rem; white-space: nowrap; }
 
-  @media (max-width: 700px) {
-    .add-form-grid, .edit-form-grid { grid-template-columns: 1fr; }
-    .expense-row { grid-template-columns: 1fr auto auto; }
-    .expense-date, .expense-category { display: none; }
-  }
+/* ─── Filter toolbar ─────────────────────────────────────────────── */
+.filter-bar  { margin-bottom: 1rem; }
+.quick-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.75rem; }
+.chip {
+  display: inline-block; padding: 0.25rem 0.7rem; border-radius: 999px;
+  font-size: 0.78rem; font-weight: 500; border: 1px solid var(--border);
+  color: var(--ink-muted); text-decoration: none; transition: all 0.15s;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip.active { background: var(--accent-light); border-color: rgba(129,140,248,0.4); color: var(--accent); }
+
+.filter-row {
+  display: grid;
+  grid-template-columns: 1fr 150px 150px 140px auto;
+  gap: 0.5rem;
+  align-items: end;
+}
+.filter-row .form-group { margin-bottom: 0; }
+.filter-row .form-group label { font-size: 0.68rem; margin-bottom: 0.3rem; }
+.filter-btns { display: flex; gap: 0.4rem; align-items: center; padding-top: 1.3rem; }
+.filter-btns .btn-submit { margin-top: 0; width: auto; padding: 0.63rem 1rem; }
+.filter-btns .btn-ghost  { padding: 0.6rem 0.85rem; font-size: 0.82rem; }
+
+.filter-note { margin-top: 0.65rem; font-size: 0.8rem; color: var(--ink-faint); }
+.filter-note strong { color: var(--accent); font-weight: 600; }
+
+/* ─── Expense list ───────────────────────────────────────────────── */
+.expense-list { list-style: none; display: flex; flex-direction: column; }
+.expense-item {
+  border-bottom: 1px solid var(--border-soft);
+  transition: background 0.12s;
+  border-radius: var(--radius-sm);
+  margin: 0 -0.5rem;
+  padding: 0 0.5rem;
+}
+.expense-item:last-child { border-bottom: none; }
+.expense-item:hover { background: rgba(255,255,255,0.025); }
+
+.expense-row {
+  display: grid;
+  grid-template-columns: 88px 115px 1fr auto auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.95rem 0;
+}
+.expense-date { font-size: 0.78rem; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.expense-cat  {
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em;
+  background: var(--accent-light); color: var(--accent);
+  padding: 0.2rem 0.6rem; border-radius: 999px; text-align: center;
+  border: 1px solid rgba(129,140,248,0.2);
+}
+.expense-desc { font-size: 0.9rem; color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.expense-amt  { font-family: var(--font-display); font-size: 1rem; color: var(--ink); text-align: right; white-space: nowrap; }
+.expense-actions { display: flex; gap: 0.3rem; }
+
+.btn-edit {
+  background: transparent; border: 1px solid var(--border); color: var(--ink-faint);
+  padding: 0.25rem 0.55rem; border-radius: 6px; font-size: 0.76rem;
+  font-family: var(--font-body); cursor: pointer; transition: all 0.15s;
+}
+.btn-edit:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+.btn-del {
+  background: transparent; border: 1px solid rgba(251,113,133,0.25); color: var(--danger);
+  padding: 0.25rem 0.55rem; border-radius: 6px; font-size: 0.76rem;
+  font-family: var(--font-body); cursor: pointer; transition: all 0.15s;
+}
+.btn-del:hover { background: var(--danger-light); border-color: var(--danger); }
+
+/* ─── Edit form ──────────────────────────────────────────────────── */
+.edit-form {
+  display: none;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem 1rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+.edit-form.is-open { display: block; }
+.edit-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.65rem; margin-bottom: 0.65rem; }
+.edit-grid .form-group { margin-bottom: 0; }
+.edit-desc  { margin-bottom: 0.65rem; }
+.edit-desc .form-group { margin-bottom: 0; }
+.edit-actions { display: flex; gap: 0.5rem; }
+.edit-actions .btn-submit { width: auto; padding: 0.5rem 1.1rem; margin-top: 0; }
+.edit-actions .btn-ghost  { padding: 0.5rem 1rem; cursor: pointer; font-size: 0.875rem; }
+
+/* ─── Pagination ─────────────────────────────────────────────────── */
+.pagination {
+  display: flex; align-items: center; gap: 0.75rem; justify-content: center;
+  padding-top: 1.25rem; border-top: 1px solid var(--border-soft); margin-top: 0.5rem;
+}
+.page-btn  { font-size: 0.82rem; padding: 0.38rem 0.85rem; }
+.page-info { font-size: 0.8rem; color: var(--ink-faint); }
+
+/* ─── Empty state ────────────────────────────────────────────────── */
+.empty-state { text-align: center; padding: 2.5rem 1rem; color: var(--ink-faint); }
+.empty-icon  { font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5; }
+.empty-text  { font-size: 0.9rem; }
+
+/* ─── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 960px) {
+  .dash-grid { grid-template-columns: 1fr; }
+  .dash-side { display: grid; grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 700px) {
+  .dash { padding: 0 1rem; }
+  .stat-strip { grid-template-columns: 1fr; }
+  .dash-side  { grid-template-columns: 1fr; }
+  .add-grid   { grid-template-columns: 1fr; }
+  .add-footer { grid-template-columns: 1fr; }
+  .edit-grid  { grid-template-columns: 1fr; }
+  .budget-set-row { grid-template-columns: 1fr; }
+  .expense-row { grid-template-columns: 1fr auto auto; }
+  .expense-date, .expense-cat { display: none; }
+  .filter-row { grid-template-columns: 1fr 1fr; }
+  .filter-row .fg-from,
+  .filter-row .fg-to   { display: none; }
+  .filter-btns { padding-top: 0; }
+  .chart-wrap canvas { width: 160px !important; height: 160px !important; }
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="expenses-page">
+<div class="dash">
 
-  <div>
-    <h1>Expenses</h1>
-    <p class="page-subtitle">Track every rupee. Own your finances.</p>
-  </div>
-
-  <!-- Overview -->
-  <div class="auth-card">
-    <h2>Overview</h2>
-    <p class="summary-total">₹{{ "%.2f"|format(total) }}</p>
-    {% if by_category %}
-    <ul class="category-breakdown">
-      {% for cat, subtotal in by_category.items() %}
-      <li class="category-pill">{{ cat }}: ₹{{ "%.2f"|format(subtotal) }}</li>
-      {% endfor %}
-    </ul>
-    {% endif %}
-  </div>
-
-  <!-- Add expense -->
-  <div class="auth-card">
-    <h2>Add Expense</h2>
-    {% if add_error %}
-    <p class="auth-error">{{ add_error }}</p>
-    {% endif %}
-    <form method="POST" action="/expenses/add">
-      <div class="add-form-grid">
-        <div class="form-group">
-          <label>Amount</label>
-          <input class="form-input" type="number" name="amount" step="0.01" min="0.01" placeholder="0.00">
-        </div>
-        <div class="form-group">
-          <label>Category</label>
-          <select class="form-input" name="category">
-            {% for cat in categories %}
-            <option value="{{ cat }}">{{ cat }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Date</label>
-          <input class="form-input" type="date" name="date" id="add-date">
-        </div>
-      </div>
-      <div class="desc-row form-group">
-        <label>Description <span style="color: var(--ink-faint); font-weight: 400;">(optional)</span></label>
-        <input class="form-input" type="text" name="description" placeholder="What was this for?" maxlength="200">
-      </div>
-      <button type="submit" class="btn-submit">Add Expense</button>
-    </form>
-  </div>
-
-  <!-- Expense list -->
-  <div class="auth-card">
-    <div class="exp-list-header">
-      <h2>Your Expenses</h2>
-      {% if preset or date_from or date_to %}
-      <span class="exp-count">{{ expenses|length }} shown</span>
-      {% endif %}
+  <!-- Page header ─────────────────────────────────────────────── -->
+  <div class="dash-header">
+    <div>
+      <h1 class="dash-title">Dashboard</h1>
+      <p class="dash-sub">Welcome back, {{ session.user_name }} — here's your spending snapshot.</p>
     </div>
+  </div>
 
-    <div class="filter-section">
-      <div class="quick-filters">
-        <a href="/expenses" class="chip{{ ' active' if not preset and not date_from and not date_to else '' }}">All</a>
-        {% for key, label in presets.items() %}
-        <a href="/expenses?preset={{ key }}" class="chip{{ ' active' if preset == key else '' }}">{{ label }}</a>
-        {% endfor %}
-      </div>
-      <form method="GET" action="/expenses">
-        <div class="date-range-row">
-          <div class="form-group">
-            <label>From</label>
-            <input class="form-input" type="date" name="date_from" value="{{ date_from or '' }}">
-          </div>
-          <div class="form-group">
-            <label>To</label>
-            <input class="form-input" type="date" name="date_to" value="{{ date_to or '' }}">
-          </div>
-          <div class="range-actions">
-            <button type="submit" class="btn-submit">Apply</button>
-            {% if date_from or date_to or preset %}
-            <a href="/expenses" class="btn-ghost">Clear</a>
-            {% endif %}
-          </div>
-        </div>
-      </form>
-      {% if preset %}
-      <p class="filter-note">Showing <strong>{{ expenses|length }} expense{{ 's' if expenses|length != 1 else '' }}</strong> · {{ presets[preset] }}</p>
-      {% elif date_from or date_to %}
-      <p class="filter-note">Showing <strong>{{ expenses|length }} expense{{ 's' if expenses|length != 1 else '' }}</strong>
-        {% if date_from and date_to %} · {{ date_from }} to {{ date_to }}
-        {% elif date_from %} · from {{ date_from }}
-        {% else %} · up to {{ date_to }}{% endif %}
+  <!-- Stat strip ──────────────────────────────────────────────── -->
+  <div class="stat-strip">
+    <div class="stat-card">
+      <p class="stat-label">Total spent</p>
+      <p class="stat-value primary">₹{{ "%.0f"|format(total) }}</p>
+      <p class="stat-sub">{{ total_count }} transaction{{ 's' if total_count != 1 else '' }}</p>
+    </div>
+    <div class="stat-card">
+      <p class="stat-label">Top category</p>
+      <p class="stat-value">
+        {%- if by_category -%}
+          {{ by_category | dictsort(by='value', reverse=True) | first | first }}
+        {%- else -%}—{%- endif -%}
       </p>
-      {% endif %}
+      <p class="stat-sub">
+        {%- if by_category -%}
+          ₹{{ "%.0f"|format(by_category | dictsort(by='value', reverse=True) | first | last) }} spent
+        {%- else -%}No expenses yet{%- endif -%}
+      </p>
     </div>
+    <div class="stat-card">
+      <p class="stat-label">Budgets set</p>
+      <p class="stat-value success">{{ budgets | length }}</p>
+      <p class="stat-sub">
+        {%- if budgets -%}
+          {{ budgets.values() | selectattr('pct', 'ge', 100) | list | length }} over limit
+        {%- else -%}None this month{%- endif -%}
+      </p>
+    </div>
+  </div>
 
-    {% if not expenses %}
-    <div class="empty-state">No expenses found for the selected period.</div>
-    {% else %}
-    <ul class="expense-list">
-      {% for e in expenses %}
-      <li class="expense-item">
-        <div class="expense-row">
-          <span class="expense-date">{{ e["date"] }}</span>
-          <span class="expense-category">{{ e["category"] }}</span>
-          <span class="expense-desc">{{ e["description"] or "—" }}</span>
-          <span class="expense-amount">₹{{ "%.2f"|format(e["amount"]) }}</span>
-          <div class="expense-actions">
-            <button type="button" class="btn-edit" onclick="toggleEdit({{ e['id'] }})">Edit</button>
-            <form method="POST" action="/expenses/{{ e['id'] }}/delete" style="display:inline;">
-              <button type="submit" class="btn-danger" onclick="return confirm('Delete this expense?')">Delete</button>
-            </form>
-          </div>
+  <!-- Two-column grid ─────────────────────────────────────────── -->
+  <div class="dash-grid">
+
+    <!-- ── MAIN COLUMN ───────────────────────────────────────── -->
+    <div class="dash-main">
+
+      <!-- Add expense -->
+      <div class="panel">
+        <div class="panel-head">
+          <p class="panel-title">Add Expense</p>
         </div>
-
-        <form method="POST" action="/expenses/{{ e['id'] }}/edit"
-              class="edit-form{% if edit_id == e['id'] %} is-open{% endif %}"
-              id="edit-form-{{ e['id'] }}">
-          {% if edit_error and edit_id == e["id"] %}
-          <p class="auth-error">{{ edit_error }}</p>
-          {% endif %}
-          <div class="edit-form-grid">
+        {% if add_error %}
+        <div class="auth-error">{{ add_error }}</div>
+        {% endif %}
+        <form method="POST" action="/expenses/add">
+          <div class="add-grid">
             <div class="form-group">
-              <label>Amount</label>
-              <input class="form-input" type="number" name="amount" step="0.01" min="0.01" value="{{ e['amount'] }}">
+              <label>Amount (₹)</label>
+              <input class="form-input" type="number" name="amount" step="0.01" min="0.01" placeholder="0.00">
             </div>
             <div class="form-group">
               <label>Category</label>
               <select class="form-input" name="category">
                 {% for cat in categories %}
-                <option value="{{ cat }}" {% if cat == e["category"] %}selected{% endif %}>{{ cat }}</option>
+                <option value="{{ cat }}">{{ cat }}</option>
                 {% endfor %}
               </select>
             </div>
             <div class="form-group">
               <label>Date</label>
-              <input class="form-input" type="date" name="date" value="{{ e['date'] }}">
+              <input class="form-input" type="date" name="date" id="add-date">
             </div>
           </div>
-          <div class="form-group">
-            <label>Description</label>
-            <input class="form-input" type="text" name="description" value="{{ e['description'] or '' }}" maxlength="200">
-          </div>
-          <div class="edit-form-actions">
-            <button type="submit" class="btn-submit">Save</button>
-            <button type="button" class="btn-ghost" onclick="toggleEdit({{ e['id'] }})">Cancel</button>
+          <div class="add-footer">
+            <div class="form-group">
+              <label>Description <span style="color:var(--ink-faint);font-weight:400;text-transform:none;">(optional)</span></label>
+              <input class="form-input" type="text" name="description" placeholder="What was this for?" maxlength="200">
+            </div>
+            <button type="submit" class="btn-submit">Add</button>
           </div>
         </form>
-      </li>
-      {% endfor %}
-    </ul>
-    {% endif %}
-  </div>
+      </div>
 
-</div>
+      <!-- Expense list -->
+      <div class="panel">
+        <div class="panel-head">
+          <p class="panel-title">Your Expenses</p>
+          <span class="panel-count">{{ total_count }} total</span>
+        </div>
+
+        <!-- Filter bar -->
+        <div class="filter-bar">
+          <!-- Preset chips -->
+          <div class="quick-chips">
+            <a href="/expenses?sort={{ sort }}&q={{ q }}"
+               class="chip{{ ' active' if not preset and not date_from and not date_to else '' }}">All</a>
+            {% for key, label in presets.items() %}
+            <a href="/expenses?preset={{ key }}&sort={{ sort }}&q={{ q }}"
+               class="chip{{ ' active' if preset == key else '' }}">{{ label }}</a>
+            {% endfor %}
+          </div>
+
+          <!-- Single unified filter form -->
+          <form method="GET" action="/expenses" class="filter-row">
+            <input type="hidden" name="preset" value="{{ preset }}">
+            <div class="form-group">
+              <label>Search</label>
+              <input class="form-input" type="text" name="q" value="{{ q }}"
+                     placeholder="Description or category…" maxlength="100">
+            </div>
+            <div class="form-group fg-from">
+              <label>From</label>
+              <input class="form-input" type="date" name="date_from" value="{{ date_from or '' }}">
+            </div>
+            <div class="form-group fg-to">
+              <label>To</label>
+              <input class="form-input" type="date" name="date_to" value="{{ date_to or '' }}">
+            </div>
+            <div class="form-group">
+              <label>Sort</label>
+              <select class="form-input" name="sort">
+                <option value="date_desc"   {% if sort == "date_desc"   %}selected{% endif %}>Date ↓</option>
+                <option value="date_asc"    {% if sort == "date_asc"    %}selected{% endif %}>Date ↑</option>
+                <option value="amount_desc" {% if sort == "amount_desc" %}selected{% endif %}>Amount ↓</option>
+                <option value="amount_asc"  {% if sort == "amount_asc"  %}selected{% endif %}>Amount ↑</option>
+              </select>
+            </div>
+            <div class="filter-btns">
+              <button type="submit" class="btn-submit">Apply</button>
+              <a href="/expenses/export?preset={{ preset }}&date_from={{ date_from }}&date_to={{ date_to }}&q={{ q }}"
+                 class="btn-ghost" title="Export CSV">↓</a>
+              {% if date_from or date_to or preset or q %}
+              <a href="/expenses" class="btn-ghost" title="Clear filters">✕</a>
+              {% endif %}
+            </div>
+          </form>
+
+          {% if preset or date_from or date_to or q %}
+          <p class="filter-note">
+            <strong>{{ total_count }}</strong> expense{{ 's' if total_count != 1 else '' }}
+            {% if preset %} · {{ presets[preset] }}{% endif %}
+            {% if date_from and date_to %} · {{ date_from }} → {{ date_to }}
+            {% elif date_from %} · from {{ date_from }}
+            {% elif date_to %} · up to {{ date_to }}{% endif %}
+            {% if q %} · "{{ q }}"{% endif %}
+          </p>
+          {% endif %}
+        </div>
+
+        <!-- List -->
+        {% if not expenses %}
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <p class="empty-text">No expenses found{% if q %} for "{{ q }}"{% endif %}.</p>
+        </div>
+        {% else %}
+        <ul class="expense-list">
+          {% for e in expenses %}
+          <li class="expense-item">
+            <div class="expense-row">
+              <span class="expense-date">{{ e["date"] }}</span>
+              <span class="expense-cat">{{ e["category"] }}</span>
+              <span class="expense-desc">{{ e["description"] or "—" }}</span>
+              <span class="expense-amt">₹{{ "%.2f"|format(e["amount"]) }}</span>
+              <div class="expense-actions">
+                <button type="button" class="btn-edit" onclick="toggleEdit({{ e['id'] }})">Edit</button>
+                <form method="POST" action="/expenses/{{ e['id'] }}/delete" style="display:inline;">
+                  <button type="submit" class="btn-del" onclick="return confirm('Delete this expense?')">✕</button>
+                </form>
+              </div>
+            </div>
+
+            <div class="edit-form{% if edit_id == e['id'] %} is-open{% endif %}" id="edit-form-{{ e['id'] }}">
+              <form method="POST" action="/expenses/{{ e['id'] }}/edit">
+                {% if edit_error and edit_id == e["id"] %}
+                <div class="auth-error" style="margin-bottom:0.75rem;">{{ edit_error }}</div>
+                {% endif %}
+                <div class="edit-grid">
+                  <div class="form-group">
+                    <label>Amount</label>
+                    <input class="form-input" type="number" name="amount" step="0.01" min="0.01" value="{{ e['amount'] }}">
+                  </div>
+                  <div class="form-group">
+                    <label>Category</label>
+                    <select class="form-input" name="category">
+                      {% for cat in categories %}
+                      <option value="{{ cat }}" {% if cat == e["category"] %}selected{% endif %}>{{ cat }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Date</label>
+                    <input class="form-input" type="date" name="date" value="{{ e['date'] }}">
+                  </div>
+                </div>
+                <div class="edit-desc">
+                  <div class="form-group">
+                    <label>Description</label>
+                    <input class="form-input" type="text" name="description" value="{{ e['description'] or '' }}" maxlength="200">
+                  </div>
+                </div>
+                <div class="edit-actions">
+                  <button type="submit" class="btn-submit">Save</button>
+                  <button type="button" class="btn-ghost" onclick="toggleEdit({{ e['id'] }})">Cancel</button>
+                </div>
+              </form>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+
+        {% if total_pages > 1 %}
+        <nav class="pagination">
+          {% if has_prev %}
+          <a href="?page={{ page-1 }}&preset={{ preset }}&date_from={{ date_from }}&date_to={{ date_to }}&q={{ q }}&sort={{ sort }}"
+             class="btn-ghost page-btn">← Prev</a>
+          {% endif %}
+          <span class="page-info">Page {{ page }} of {{ total_pages }}</span>
+          {% if has_next %}
+          <a href="?page={{ page+1 }}&preset={{ preset }}&date_from={{ date_from }}&date_to={{ date_to }}&q={{ q }}&sort={{ sort }}"
+             class="btn-ghost page-btn">Next →</a>
+          {% endif %}
+        </nav>
+        {% endif %}
+        {% endif %}
+      </div>
+
+    </div><!-- /dash-main -->
+
+    <!-- ── SIDEBAR ────────────────────────────────────────────── -->
+    <div class="dash-side">
+
+      <!-- Spending overview -->
+      <div class="panel">
+        <p class="panel-title">Overview</p>
+        <p class="overview-total">₹{{ "%.2f"|format(total) }}</p>
+
+        {% if by_category %}
+        <div class="chart-wrap">
+          <canvas id="categoryChart" width="210" height="210"></canvas>
+        </div>
+        <ul class="cat-pills">
+          {% for cat, subtotal in by_category.items() %}
+          <li class="cat-pill">{{ cat }}: ₹{{ "%.0f"|format(subtotal) }}</li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p style="font-size:0.85rem;color:var(--ink-faint);margin-top:0.5rem;">Add an expense to see your breakdown.</p>
+        {% endif %}
+      </div>
+
+      <!-- Monthly budgets -->
+      <div class="panel">
+        <p class="panel-title">Budgets <span style="font-size:0.78rem;color:var(--ink-faint);font-family:var(--font-body);font-weight:400;">this month</span></p>
+        {% if budget_error %}
+        <div class="auth-error" style="margin-bottom:0.75rem;">{{ budget_error }}</div>
+        {% endif %}
+        <form method="POST" action="/budgets/set">
+          <div class="budget-set-row">
+            <div class="form-group">
+              <label>Category</label>
+              <select class="form-input" name="category">
+                {% for cat in categories %}
+                <option value="{{ cat }}">{{ cat }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Limit (₹)</label>
+              <input class="form-input" type="number" name="amount" step="0.01" min="0.01" placeholder="5000">
+            </div>
+            <button type="submit" class="btn-submit">Set limit</button>
+          </div>
+        </form>
+
+        {% if budgets %}
+        <ul class="budget-list">
+          {% for cat, b in budgets.items() %}
+          <li class="budget-row{% if b.pct >= 100 %} budget-over{% endif %}">
+            <div class="budget-info">
+              <div class="budget-top">
+                <span class="budget-label">{{ cat }}</span>
+                <span class="budget-amounts">₹{{ "%.0f"|format(b.spent) }}/₹{{ "%.0f"|format(b.amount) }}</span>
+              </div>
+              <div class="budget-bar">
+                <div class="budget-fill" style="width:{{ [b.pct, 100]|min }}%"></div>
+              </div>
+            </div>
+            <span class="budget-pct{% if b.pct >= 100 %} over{% endif %}">{{ "%.0f"|format(b.pct) }}%</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="budget-empty">No budgets set yet.</p>
+        {% endif %}
+      </div>
+
+    </div><!-- /dash-side -->
+
+  </div><!-- /dash-grid -->
+</div><!-- /dash -->
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script>
-document.getElementById('add-date').value = new Date().toISOString().split('T')[0];
+var addDate = document.getElementById('add-date');
+if (addDate) addDate.value = new Date().toISOString().split('T')[0];
 
 function toggleEdit(id) {
-  document.getElementById('edit-form-' + id).classList.toggle('is-open');
+  var el = document.getElementById('edit-form-' + id);
+  if (el) el.classList.toggle('is-open');
 }
+
+(function () {
+  var ctx = document.getElementById('categoryChart');
+  if (!ctx) return;
+  var data   = {{ by_category | tojson }};
+  var labels = Object.keys(data);
+  var values = Object.values(data);
+  var palette = ['#818cf8','#fbbf24','#34d399','#fb7185','#60a5fa','#a78bfa','#94a3b8'];
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: values,
+        backgroundColor: palette.slice(0, labels.length),
+        borderWidth: 2,
+        borderColor: '#0e1521'
+      }]
+    },
+    options: {
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            font: { size: 11, family: "'DM Sans', sans-serif" },
+            color: '#8b9ac8', boxWidth: 12, padding: 10
+          }
+        }
+      },
+      cutout: '64%'
+    }
+  });
+}());
 </script>
 {% endblock %}

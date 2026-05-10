@@ -2,13 +2,23 @@
 
 {% block title %}Spendly — Track Every Rupee{% endblock %}
 
+{% block head %}
+<style>
+  .hero-badge-wrap { display: flex; justify-content: center; }
+</style>
+{% endblock %}
+
 {% block content %}
+
+{% if account_deleted %}
+<div class="deleted-banner">Your account has been deleted. Sorry to see you go — you can always create a new one.</div>
+{% endif %}
 
 <section class="hero">
     <div class="hero-content">
         <div class="hero-pill">
             <span class="hero-pill-dot"></span>
-            Free to use · No credit card needed
+            Free to use &nbsp;·&nbsp; No credit card needed
         </div>
         <h1 class="hero-heading">
             Track every rupee.<br>
@@ -19,8 +29,12 @@
             on budget — without the spreadsheet headache.
         </p>
         <div class="hero-actions">
+            {% if session.user_id %}
+            <a href="{{ url_for('expenses') }}" class="btn-primary">Go to Dashboard →</a>
+            {% else %}
             <a href="{{ url_for('register') }}" class="btn-primary">Create free account</a>
             <a href="#" class="btn-outline-dark">See how it works</a>
+            {% endif %}
         </div>
     </div>
 
@@ -35,7 +49,7 @@
                 <div class="mockup-stat">
                     <span class="mstat-label">This month</span>
                     <span class="mstat-value">₹18,240</span>
-                    <span class="mstat-meta positive">+12% vs last</span>
+                    <span class="mstat-meta positive">↑ 12% vs last</span>
                 </div>
                 <div class="mockup-stat">
                     <span class="mstat-label">Budget left</span>
@@ -77,26 +91,32 @@
         <div class="feature-card">
             <div class="feature-icon">₹</div>
             <h3 class="feature-title">Log expenses instantly</h3>
-            <p class="feature-body">Add any expense in seconds. Category, amount, date, description — all in one simple form.</p>
+            <p class="feature-body">Add any expense in seconds — category, amount, date, and description in one clean form.</p>
         </div>
         <div class="feature-card">
             <div class="feature-icon">◎</div>
-            <h3 class="feature-title">Understand your patterns</h3>
-            <p class="feature-body">See exactly where your money goes with category breakdowns and monthly summaries.</p>
+            <h3 class="feature-title">Budget tracking</h3>
+            <p class="feature-body">Set monthly limits per category and watch live progress bars tell you exactly where you stand.</p>
         </div>
         <div class="feature-card">
             <div class="feature-icon">◷</div>
-            <h3 class="feature-title">Filter by time period</h3>
-            <p class="feature-body">View your spending for any date range — last week, last month, or a custom period.</p>
+            <h3 class="feature-title">Filter &amp; export</h3>
+            <p class="feature-body">Filter by date presets, search by keyword, sort by amount — then export a CSV in one click.</p>
         </div>
     </div>
 </section>
 
 <section class="cta-section">
     <div class="cta-inner">
-        <h2 class="cta-title">Ready to take control?</h2>
+        {% if session.user_id %}
+        <h2 class="cta-title">Welcome back, {{ session.user_name }}.</h2>
+        <p class="cta-body">Pick up where you left off — your dashboard is ready.</p>
+        <a href="{{ url_for('expenses') }}" class="btn-primary">Go to Dashboard →</a>
+        {% else %}
+        <h2 class="cta-title">Ready to take control of your money?</h2>
         <p class="cta-body">Join thousands of people who track their expenses with Spendly.</p>
         <a href="{{ url_for('register') }}" class="btn-primary">Create free account</a>
+        {% endif %}
     </div>
 </section>
 
@@ -126,6 +146,7 @@
     var iframe   = document.getElementById('modal-iframe');
     var openBtn  = document.querySelector('.btn-outline-dark');
     var closeBtn = document.getElementById('modal-close-btn');
+    if (!overlay || !openBtn) return;
     var videoSrc = iframe.dataset.src;
 
     function openModal() {
@@ -142,21 +163,11 @@
         document.body.style.overflow = '';
     }
 
-    openBtn.addEventListener('click', function (e) {
-        e.preventDefault();
-        openModal();
-    });
-
+    openBtn.addEventListener('click', function (e) { e.preventDefault(); openModal(); });
     closeBtn.addEventListener('click', closeModal);
-
-    overlay.addEventListener('click', function (e) {
-        if (e.target === overlay) closeModal();
-    });
-
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
     document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && overlay.classList.contains('is-open')) {
-            closeModal();
-        }
+        if (e.key === 'Escape' && overlay.classList.contains('is-open')) closeModal();
     });
 }());
 </script>

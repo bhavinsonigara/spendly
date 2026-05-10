@@ -6,7 +6,7 @@
     <title>{% block title %}Spendly{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block head %}{% endblock %}
 </head>
@@ -15,15 +15,19 @@
     <nav class="navbar">
         <div class="nav-inner">
             <a href="{{ url_for('landing') }}" class="nav-brand">
-                <span class="brand-icon">◈</span>
+                <div class="brand-logo">S</div>
                 <span class="brand-name">Spendly</span>
             </a>
             <div class="nav-links">
                 {% if session.user_id %}
-                    <a href="{{ url_for('profile') }}">{{ session.user_name }}</a>
+                    <a href="{{ url_for('expenses') }}" class="nav-link">Dashboard</a>
+                    <a href="{{ url_for('profile') }}" class="nav-link">
+                        <span class="nav-avatar">{{ session.user_name[0] | upper }}</span>
+                        {{ session.user_name }}
+                    </a>
                     <a href="{{ url_for('logout') }}" class="nav-cta">Logout</a>
                 {% else %}
-                    <a href="{{ url_for('login') }}">Sign in</a>
+                    <a href="{{ url_for('login') }}" class="nav-link">Sign in</a>
                     <a href="{{ url_for('register') }}" class="nav-cta">Get started</a>
                 {% endif %}
             </div>
@@ -36,11 +40,16 @@
 
     <footer class="footer">
         <div class="footer-inner">
-            <span class="brand-icon">◈</span>
-            <span class="footer-name">Spendly</span>
-            <p class="footer-copy">Track every rupee. Own your finances.</p>
-            <a href="{{ url_for('terms') }}">Terms and Conditions</a>
-            <a href="{{ url_for('privacy') }}">Privacy Policy</a>
+            <div class="footer-brand">
+                <div class="brand-logo">S</div>
+                <span class="footer-name">Spendly</span>
+            </div>
+            <p class="footer-tagline">Track every rupee. Own your finances.</p>
+            <div class="footer-links">
+                <a href="{{ url_for('terms') }}">Terms</a>
+                <a href="{{ url_for('privacy') }}">Privacy</a>
+            </div>
+            <p class="footer-copy">© 2026 Spendly. All rights reserved.</p>
         </div>
     </footer>
 
