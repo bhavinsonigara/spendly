@@ -31,7 +31,7 @@ def test_login_wrong_password(client):
 def test_login_success_redirects(client):
     response = client.post("/login", data={"email": "test@example.com", "password": "password123"})
     assert response.status_code == 302
-    assert response.headers["Location"] == "/"
+    assert response.headers["Location"] == "/expenses"
 
 
 def test_login_success_sets_session(client):

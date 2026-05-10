@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Expenses — Spendly{% endblock %}
+
+{% block head %}
+<style>
+  .expenses-page { max-width: 860px; margin: 3rem auto; padding: 0 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
+  .expenses-page h1 { font-family: var(--font-display); font-size: 2rem; margin-bottom: 0.25rem; }
+  .expenses-page h2 { font-family: var(--font-display); font-size: 1.3rem; margin-bottom: 1.25rem; }
+  .page-subtitle { color: var(--ink-muted); font-size: 0.9rem; }
+
+  .summary-total { font-family: var(--font-display); font-size: 2.5rem; color: var(--accent); margin-bottom: 1rem; line-height: 1; }
+  .category-breakdown { list-style: none; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .category-pill { background: var(--paper-warm); border: 1px solid var(--border); border-radius: 999px; padding: 0.25rem 0.75rem; font-size: 0.8rem; color: var(--ink-soft); }
+
+  .add-form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem; }
+  .add-form-grid .form-group { margin-bottom: 0; }
+  .desc-row { margin-bottom: 0.75rem; }
+
+  .expense-list { list-style: none; display: flex; flex-direction: column; }
+  .expense-item { border-bottom: 1px solid var(--border-soft); padding: 0.85rem 0; }
+  .expense-item:last-child { border-bottom: none; }
+  .expense-row { display: grid; grid-template-columns: 90px 120px 1fr auto auto; align-items: center; gap: 1rem; }
+  .expense-date { font-size: 0.82rem; color: var(--ink-muted); }
+  .expense-category { font-size: 0.78rem; font-weight: 500; background: var(--accent-light); color: var(--accent); padding: 0.2rem 0.6rem; border-radius: 999px; text-align: center; }
+  .expense-desc { font-size: 0.9rem; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .expense-amount { font-family: var(--font-display); font-size: 1.05rem; color: var(--ink); text-align: right; white-space: nowrap; }
+  .expense-actions { display: flex; gap: 0.4rem; }
+
+  .btn-edit { background: transparent; border: 1px solid var(--border); color: var(--ink-muted); padding: 0.3rem 0.65rem; border-radius: var(--radius-sm); font-size: 0.8rem; font-family: var(--font-body); cursor: pointer; transition: all 0.2s; }
+  .btn-edit:hover { border-color: var(--ink); color: var(--ink); }
+  .btn-danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); padding: 0.3rem 0.65rem; border-radius: var(--radius-sm); font-size: 0.8rem; font-family: var(--font-body); cursor: pointer; transition: all 0.2s; }
+  .btn-danger:hover { background: var(--danger); color: #fff; }
+
+  .edit-form { display: none; padding: 0.75rem 0 0.25rem; }
+  .edit-form.is-open { display: block; }
+  .edit-form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem; }
+  .edit-form-grid .form-group { margin-bottom: 0; }
+  .edit-form-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+  .edit-form-actions .btn-submit { width: auto; padding: 0.5rem 1.25rem; margin-top: 0; }
+  .edit-form-actions .btn-ghost { padding: 0.5rem 1.25rem; cursor: pointer; font-family: var(--font-body); font-size: 0.9rem; }
+
+  .exp-list-header { display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1rem; }
+  .exp-list-header h2 { margin-bottom: 0; }
+  .exp-count { font-size: 0.82rem; color: var(--ink-muted); }
+  .filter-section { border-bottom: 1px solid var(--border-soft); padding-bottom: 1.25rem; margin-bottom: 1.25rem; }
+  .quick-filters { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.85rem; }
+  .chip { display: inline-block; padding: 0.28rem 0.75rem; border-radius: 999px; font-size: 0.8rem; font-weight: 500; border: 1px solid var(--border); color: var(--ink-muted); text-decoration: none; transition: all 0.18s; }
+  .chip:hover { border-color: var(--ink); color: var(--ink); }
+  .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .date-range-row { display: flex; align-items: flex-end; gap: 0.65rem; flex-wrap: wrap; }
+  .date-range-row .form-group { margin-bottom: 0; min-width: 130px; flex: 1; }
+  .range-actions { display: flex; gap: 0.5rem; }
+  .range-actions .btn-submit { width: auto; padding: 0.6rem 1.1rem; margin-top: 0; }
+  .range-actions .btn-ghost { padding: 0.6rem 1.1rem; display: inline-flex; align-items: center; }
+  .filter-note { margin-top: 0.75rem; font-size: 0.82rem; color: var(--ink-muted); }
+  .filter-note strong { color: var(--accent); }
+
+  .empty-state { text-align: center; padding: 2.5rem 1rem; color: var(--ink-muted); font-size: 0.95rem; }
+
+  @media (max-width: 700px) {
+    .add-form-grid, .edit-form-grid { grid-template-columns: 1fr; }
+    .expense-row { grid-template-columns: 1fr auto auto; }
+    .expense-date, .expense-category { display: none; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="expenses-page">
+
+  <div>
+    <h1>Expenses</h1>
+    <p class="page-subtitle">Track every rupee. Own your finances.</p>
+  </div>
+
+  <!-- Overview -->
+  <div class="auth-card">
+    <h2>Overview</h2>
+    <p class="summary-total">₹{{ "%.2f"|format(total) }}</p>
+    {% if by_category %}
+    <ul class="category-breakdown">
+      {% for cat, subtotal in by_category.items() %}
+      <li class="category-pill">{{ cat }}: ₹{{ "%.2f"|format(subtotal) }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+
+  <!-- Add expense -->
+  <div class="auth-card">
+    <h2>Add Expense</h2>
+    {% if add_error %}
+    <p class="auth-error">{{ add_error }}</p>
+    {% endif %}
+    <form method="POST" action="/expenses/add">
+      <div class="add-form-grid">
+        <div class="form-group">
+          <label>Amount</label>
+          <input class="form-input" type="number" name="amount" step="0.01" min="0.01" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select class="form-input" name="category">
+            {% for cat in categories %}
+            <option value="{{ cat }}">{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input class="form-input" type="date" name="date" id="add-date">
+        </div>
+      </div>
+      <div class="desc-row form-group">
+        <label>Description <span style="color: var(--ink-faint); font-weight: 400;">(optional)</span></label>
+        <input class="form-input" type="text" name="description" placeholder="What was this for?" maxlength="200">
+      </div>
+      <button type="submit" class="btn-submit">Add Expense</button>
+    </form>
+  </div>
+
+  <!-- Expense list -->
+  <div class="auth-card">
+    <div class="exp-list-header">
+      <h2>Your Expenses</h2>
+      {% if preset or date_from or date_to %}
+      <span class="exp-count">{{ expenses|length }} shown</span>
+      {% endif %}
+    </div>
+
+    <div class="filter-section">
+      <div class="quick-filters">
+        <a href="/expenses" class="chip{{ ' active' if not preset and not date_from and not date_to else '' }}">All</a>
+        {% for key, label in presets.items() %}
+        <a href="/expenses?preset={{ key }}" class="chip{{ ' active' if preset == key else '' }}">{{ label }}</a>
+        {% endfor %}
+      </div>
+      <form method="GET" action="/expenses">
+        <div class="date-range-row">
+          <div class="form-group">
+            <label>From</label>
+            <input class="form-input" type="date" name="date_from" value="{{ date_from or '' }}">
+          </div>
+          <div class="form-group">
+            <label>To</label>
+            <input class="form-input" type="date" name="date_to" value="{{ date_to or '' }}">
+          </div>
+          <div class="range-actions">
+            <button type="submit" class="btn-submit">Apply</button>
+            {% if date_from or date_to or preset %}
+            <a href="/expenses" class="btn-ghost">Clear</a>
+            {% endif %}
+          </div>
+        </div>
+      </form>
+      {% if preset %}
+      <p class="filter-note">Showing <strong>{{ expenses|length }} expense{{ 's' if expenses|length != 1 else '' }}</strong> · {{ presets[preset] }}</p>
+      {% elif date_from or date_to %}
+      <p class="filter-note">Showing <strong>{{ expenses|length }} expense{{ 's' if expenses|length != 1 else '' }}</strong>
+        {% if date_from and date_to %} · {{ date_from }} to {{ date_to }}
+        {% elif date_from %} · from {{ date_from }}
+        {% else %} · up to {{ date_to }}{% endif %}
+      </p>
+      {% endif %}
+    </div>
+
+    {% if not expenses %}
+    <div class="empty-state">No expenses found for the selected period.</div>
+    {% else %}
+    <ul class="expense-list">
+      {% for e in expenses %}
+      <li class="expense-item">
+        <div class="expense-row">
+          <span class="expense-date">{{ e["date"] }}</span>
+          <span class="expense-category">{{ e["category"] }}</span>
+          <span class="expense-desc">{{ e["description"] or "—" }}</span>
+          <span class="expense-amount">₹{{ "%.2f"|format(e["amount"]) }}</span>
+          <div class="expense-actions">
+            <button type="button" class="btn-edit" onclick="toggleEdit({{ e['id'] }})">Edit</button>
+            <form method="POST" action="/expenses/{{ e['id'] }}/delete" style="display:inline;">
+              <button type="submit" class="btn-danger" onclick="return confirm('Delete this expense?')">Delete</button>
+            </form>
+          </div>
+        </div>
+
+        <form method="POST" action="/expenses/{{ e['id'] }}/edit"
+              class="edit-form{% if edit_id == e['id'] %} is-open{% endif %}"
+              id="edit-form-{{ e['id'] }}">
+          {% if edit_error and edit_id == e["id"] %}
+          <p class="auth-error">{{ edit_error }}</p>
+          {% endif %}
+          <div class="edit-form-grid">
+            <div class="form-group">
+              <label>Amount</label>
+              <input class="form-input" type="number" name="amount" step="0.01" min="0.01" value="{{ e['amount'] }}">
+            </div>
+            <div class="form-group">
+              <label>Category</label>
+              <select class="form-input" name="category">
+                {% for cat in categories %}
+                <option value="{{ cat }}" {% if cat == e["category"] %}selected{% endif %}>{{ cat }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Date</label>
+              <input class="form-input" type="date" name="date" value="{{ e['date'] }}">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <input class="form-input" type="text" name="description" value="{{ e['description'] or '' }}" maxlength="200">
+          </div>
+          <div class="edit-form-actions">
+            <button type="submit" class="btn-submit">Save</button>
+            <button type="button" class="btn-ghost" onclick="toggleEdit({{ e['id'] }})">Cancel</button>
+          </div>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('add-date').value = new Date().toISOString().split('T')[0];
+
+function toggleEdit(id) {
+  document.getElementById('edit-form-' + id).classList.toggle('is-open');
+}
+</script>
+{% endblock %}

@@ -1,9 +1,42 @@
+import datetime
+
 from flask import Flask, render_template, request, redirect, url_for, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from database.db import get_db, init_db, seed_db
 
 app = Flask(__name__)
 app.secret_key = "dev-secret-key-spendly"
+
+CATEGORIES = ["Food", "Transport", "Bills", "Health", "Entertainment", "Shopping", "Other"]
+
+PRESETS = {
+    "today":        "Today",
+    "this_week":    "This Week",
+    "last_week":    "Last Week",
+    "this_month":   "This Month",
+    "last_month":   "Last Month",
+    "last_3_months": "Last 3 Months",
+}
+
+
+def _date_range_for_preset(preset):
+    today = datetime.date.today()
+    if preset == "today":
+        return str(today), str(today)
+    if preset == "this_week":
+        start = today - datetime.timedelta(days=today.weekday())
+        return str(start), str(today)
+    if preset == "last_week":
+        start = today - datetime.timedelta(days=today.weekday() + 7)
+        return str(start), str(start + datetime.timedelta(days=6))
+    if preset == "this_month":
+        return str(today.replace(day=1)), str(today)
+    if preset == "last_month":
+        last_day = today.replace(day=1) - datetime.timedelta(days=1)
+        return str(last_day.replace(day=1)), str(last_day)
+    if preset == "last_3_months":
+        return str(today - datetime.timedelta(days=90)), str(today)
+    return None, None
 
 with app.app_context():
     init_db()
@@ -80,7 +113,7 @@ def login():
     finally:
         db.close()
 
-    return redirect(url_for("landing"))
+    return redirect(url_for("expenses"))
 
 
 @app.route("/terms")
@@ -196,19 +229,173 @@ def update_password():
     return redirect(url_for("profile") + "?updated=password")
 
 
-@app.route("/expenses/add")
+@app.route("/expenses")
+def expenses():
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    preset = request.args.get("preset", "").strip()
+    date_from = request.args.get("date_from", "").strip()
+    date_to = request.args.get("date_to", "").strip()
+
+    # Preset overrides any manual date inputs
+    sql_from, sql_to = date_from, date_to
+    if preset in PRESETS:
+        sql_from, sql_to = _date_range_for_preset(preset)
+
+    query = ("SELECT id, amount, category, date, description FROM expenses"
+             " WHERE user_id = ?")
+    params = [session["user_id"]]
+    if sql_from:
+        query += " AND date >= ?"
+        params.append(sql_from)
+    if sql_to:
+        query += " AND date <= ?"
+        params.append(sql_to)
+    query += " ORDER BY date DESC, id DESC"
+
+    db = get_db()
+    try:
+        rows = db.execute(query, params).fetchall()
+    finally:
+        db.close()
+
+    total = sum(e["amount"] for e in rows)
+    by_category = {}
+    for e in rows:
+        by_category[e["category"]] = by_category.get(e["category"], 0) + e["amount"]
+    return render_template(
+        "expenses.html",
+        expenses=rows,
+        total=total,
+        by_category=by_category,
+        categories=CATEGORIES,
+        presets=PRESETS,
+        preset=preset,
+        date_from=date_from,
+        date_to=date_to,
+    )
+
+
+def _expenses_context(user_id):
+    db = get_db()
+    try:
+        rows = db.execute(
+            "SELECT id, amount, category, date, description FROM expenses"
+            " WHERE user_id = ? ORDER BY date DESC, id DESC",
+            (user_id,),
+        ).fetchall()
+    finally:
+        db.close()
+    total = sum(e["amount"] for e in rows)
+    by_category = {}
+    for e in rows:
+        by_category[e["category"]] = by_category.get(e["category"], 0) + e["amount"]
+    return {
+        "expenses": rows,
+        "total": total,
+        "by_category": by_category,
+        "categories": CATEGORIES,
+        "presets": PRESETS,
+        "preset": "",
+        "date_from": "",
+        "date_to": "",
+    }
+
+
+def _validate_expense_form(amount_str, category, date_str, description):
+    if not amount_str or not category or not date_str:
+        return None, None, None, "Amount, category, and date are required."
+    try:
+        amount = float(amount_str)
+        if amount <= 0:
+            raise ValueError
+    except ValueError:
+        return None, None, None, "Amount must be a positive number."
+    if category not in CATEGORIES:
+        return None, None, None, "Invalid category selected."
+    try:
+        datetime.date.fromisoformat(date_str)
+    except ValueError:
+        return None, None, None, "Date must be in YYYY-MM-DD format."
+    if description and len(description) > 200:
+        return None, None, None, "Description must be 200 characters or fewer."
+    return amount, category, date_str, None
+
+
+@app.route("/expenses/add", methods=["POST"])
 def add_expense():
-    return "Add expense — coming in Step 7"
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    amount_str = request.form.get("amount", "").strip()
+    category = request.form.get("category", "").strip()
+    date_str = request.form.get("date", "").strip()
+    description = request.form.get("description", "").strip()
+
+    amount, category, date_str, error = _validate_expense_form(amount_str, category, date_str, description)
+    if error:
+        return render_template("expenses.html", add_error=error, **_expenses_context(session["user_id"]))
+
+    db = get_db()
+    try:
+        db.execute(
+            "INSERT INTO expenses (user_id, amount, category, date, description) VALUES (?, ?, ?, ?, ?)",
+            (session["user_id"], amount, category, date_str, description or None),
+        )
+        db.commit()
+    finally:
+        db.close()
+    return redirect(url_for("expenses"))
 
 
-@app.route("/expenses/<int:id>/edit")
+@app.route("/expenses/<int:id>/edit", methods=["POST"])
 def edit_expense(id):
-    return "Edit expense — coming in Step 8"
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    amount_str = request.form.get("amount", "").strip()
+    category = request.form.get("category", "").strip()
+    date_str = request.form.get("date", "").strip()
+    description = request.form.get("description", "").strip()
+
+    amount, category, date_str, error = _validate_expense_form(amount_str, category, date_str, description)
+    if error:
+        return render_template("expenses.html", edit_error=error, edit_id=id, **_expenses_context(session["user_id"]))
+
+    db = get_db()
+    try:
+        existing = db.execute(
+            "SELECT id FROM expenses WHERE id = ? AND user_id = ?",
+            (id, session["user_id"]),
+        ).fetchone()
+        if not existing:
+            return redirect(url_for("expenses"))
+        db.execute(
+            "UPDATE expenses SET amount = ?, category = ?, date = ?, description = ?"
+            " WHERE id = ? AND user_id = ?",
+            (amount, category, date_str, description or None, id, session["user_id"]),
+        )
+        db.commit()
+    finally:
+        db.close()
+    return redirect(url_for("expenses"))
 
 
-@app.route("/expenses/<int:id>/delete")
+@app.route("/expenses/<int:id>/delete", methods=["POST"])
 def delete_expense(id):
-    return "Delete expense — coming in Step 9"
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    db = get_db()
+    try:
+        db.execute(
+            "DELETE FROM expenses WHERE id = ? AND user_id = ?",
+            (id, session["user_id"]),
+        )
+        db.commit()
+    finally:
+        db.close()
+    return redirect(url_for("expenses"))
 
 
 if __name__ == "__main__":
