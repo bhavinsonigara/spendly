@@ -1,0 +1,13 @@
+[Unit]
+Description=Spendly Flask App
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/spendly
+Environment="SECRET_KEY=change-this-to-a-long-random-string"
+ExecStart=/home/ubuntu/spendly/venv/bin/gunicorn --workers 2 --bind unix:/home/ubuntu/spendly/spendly.sock wsgi:app
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

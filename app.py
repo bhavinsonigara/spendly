@@ -2,13 +2,14 @@ import csv
 import datetime
 import io
 import math
+import os
 
 from flask import Flask, render_template, request, redirect, url_for, session, Response
 from werkzeug.security import generate_password_hash, check_password_hash
 from database.db import get_db, init_db, seed_db
 
 app = Flask(__name__)
-app.secret_key = "dev-secret-key-spendly"
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-spendly")
 
 CATEGORIES = ["Food", "Transport", "Bills", "Health", "Entertainment", "Shopping", "Other"]
 
