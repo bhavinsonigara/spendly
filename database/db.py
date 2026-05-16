@@ -54,7 +54,7 @@ def seed_db():
         return
 
     conn.execute(
-        "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
+        "INSERT OR IGNORE INTO users (name, email, password_hash) VALUES (?, ?, ?)",
         ("Demo User", "demo@spendly.com", generate_password_hash("demo123")),
     )
     user_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
